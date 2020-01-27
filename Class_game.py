@@ -1,0 +1,152 @@
+import time
+import numpy as np
+import graphics as gr
+from Class_Bouncer import Bouncer
+from Class_physics import Physics
+from Class_Position import Position
+from Class_Velocity import Velocity
+
+class Game():
+    def __init__(self, win):
+        self.win = win
+        self.initial_x = 100
+        self.initial_y = 600
+        self.initial_time = 0
+        self.rules = Physics(20, 0, 0.3)
+        self.initial_velocity = None
+        self.collision_number = 0
+        self.bouncer = Bouncer(self)
+        self.bouncer.make_bouncer()
+        self.collect_input()
+        self.allign_screen()
+        self.draw_projectile()
+
+    def draw_anything(self, object):
+        object.setWidth(10)
+        object.draw(self.win)
+
+    def draw_markers(self, x, y, r, undraw):
+        self.ball_drawing = gr.Circle(gr.Point(x, y), r)
+        self.ball_drawing.setFill('red')
+        self.ball_drawing.draw(self.win)
+        if undraw == True:
+            self.ball_drawing.undraw()
+
+    def draw_start_button(self, x, y, r):
+        start = gr.Circle(gr.Point(x, y), r)
+        start.setFill('green')
+        start.draw(self.win)
+
+    def check_start_button(self):
+        point_location = self.win.getMouse()
+        if point_location.getY() > 390 and point_location.getY() < 410 and point_location.getX() > 1290 and point_location.getX() < 1310:
+            return True
+        else:
+            return False
+
+    def collect_input(self):
+        input_box_angle = gr.Entry(gr.Point(1300, 300), 5).draw(self.win)
+        input_box_velocity = gr.Entry(gr.Point(1300, 200), 5).draw(self.win)
+        input_box_angle.setText('1')
+        input_box_velocity.setText('100')
+        self.draw_start_button(1300,400,10)
+        if self.check_start_button() == True:
+            initial_angle = float(input_box_angle.getText())
+            initial_v_x = float(input_box_velocity.getText())* np.cos(initial_angle)
+            initial_v_y = float(input_box_velocity.getText())* np.sin(initial_angle)
+            self.initial_velocity = Velocity(initial_v_x, initial_v_y, self.initial_time, self.rules)
+
+    def allign_screen(self):
+        if self.initial_velocity.v_x < 0:
+            self.initial_x = 1300
+        if self.initial_velocity.v_y > 0:
+            self.initial_y = 250
+
+
+    def draw_projectile(self):
+        instant_time = self.initial_time
+        interval = Time_step(0.1)
+        ball_initial_position = Position(self.initial_x, self.initial_y, instant_time, self.initial_velocity, self.rules)
+        self.inst_x, self.inst_y = ball_initial_position.x, ball_initial_position.y
+        self.draw_markers(self.inst_x, self.inst_y, 20, True)
+        while self.inst_y < 800:
+            self.draw_markers(self.inst_x, self.inst_y, 15, True)
+            instant_time += interval.step_size
+            ball_instantaneous_velocity = Velocity(self.initial_velocity.v_x, self.initial_velocity.v_y, instant_time, self.rules)
+            self.inst_v_x, self.inst_v_y = ball_instantaneous_velocity.instantaneous_velocity()
+            print(self.inst_v_x, self.inst_v_y)
+            ball_inst_position = Position(self.initial_x, self.initial_y, instant_time, self.initial_velocity, self.rules)
+            self.inst_x, self.inst_y = ball_inst_position.instantaneous_position()
+            self.bouncer.move_bouncer(25, 25)
+            self.check_collision()
+        self.bouncer.undraw_bouncer()
+        Game(self.win)
+
+    def check_too_slow(self):
+        print('checking if too slow')
+        print(self.initial_velocity.v_x, self.initial_velocity.v_y)
+        if self.initial_velocity.v_x> -2 and self.initial_velocity.v_x < 2 and self.initial_velocity.v_y> -8 and self.initial_velocity.v_x < 8:
+            print('too slow')
+            self.bouncer.undraw_bouncer()
+            self.ball_drawing.undraw()
+            Game(self.win)
+
+
+    def check_collision(self):
+        left_edge = self.bouncer.left_edge.getP1()
+        right_edge = self.bouncer.right_edge.getP1()
+        base = self.bouncer.base.getP1()
+        if self.inst_x > base.getX()-5 and self.inst_x < base.getX() + 105 and self.inst_y > base.getY() - 10 and self.inst_y < base.getY() + 10:
+            self.collision(True, "base")
+        if self.inst_x > left_edge.getX()-5 and self.inst_x < left_edge.getX() + 5 and self.inst_y > left_edge.getY() - 105 and self.inst_y < left_edge.getY()+5:
+            self.collision(True, "left_edge")
+        if self.inst_x > right_edge.getX()-5 and self.inst_x < right_edge.getX() + 5 and self.inst_y > left_edge.getY() - 105 and self.inst_y < left_edge.getY()+5:
+            self.collision(True, "right_edge")
+
+    def collision(self, collision, side):
+        if collision == True:
+            self.collision_number+=1
+            if side == "base":
+                self.bouncer.base.setFill('red')
+                self.initial_x, self.initial_y = self.inst_x, self.inst_y - 3
+                initial_v_y = 0.8 * self.inst_v_y
+                if self.inst_v_x > 0:
+                    initial_v_x = self.inst_v_x - self.rules.friction
+                elif self.inst_v_x == 0:
+                    initial_v_x = self.inst_v_x
+                    initial_v_y = -0.8 * self.inst_v_y
+                else:
+                    initial_v_x = self.inst_v_x + self.rules.friction
+                self.initial_velocity = Velocity(initial_v_x, initial_v_y, self.initial_time, self.rules)
+                self.check_too_slow()
+                self.bouncer.base.setFill('black')
+                self.draw_projectile()
+            if side == "right_edge" or "left_edge":
+                if side == "right_edge":
+                    self.bouncer.right_edge.setFill('red')
+                    self.bouncer.left_edge.setFill('black')
+                else:
+                    self.bouncer.left_edge.setFill('red')
+                    self.bouncer.right_edge.setFill('black')
+                self.initial_y = self.inst_y
+                if self.inst_v_x > 0:
+                    self.initial_x = self.inst_x - 3
+                    initial_v_x = -1 * (self.inst_v_x - self.rules.friction)
+                else:
+                    self.initial_x = self.inst_x + 3
+                    initial_v_x = -1 * (self.inst_v_x + self.rules.friction)
+                initial_v_y = -0.8 * self.inst_v_y
+                self.initial_velocity = Velocity(initial_v_x, initial_v_y, self.initial_time, self.rules)
+                self.check_too_slow()
+                self.bouncer.left_edge.setFill('black')
+                self.bouncer.right_edge.setFill('black')
+                self.draw_projectile()
+
+
+
+class Time_step():
+    def __init__(self, step_size):
+        self.step_size = step_size
+    def time_step(self):
+        time.sleep(self.step_size)
+
