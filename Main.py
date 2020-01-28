@@ -1,4 +1,4 @@
-from Class_game import *
+from Class_Front_Page import Front_Page
 import graphics as gr
 def main():
     height=850
