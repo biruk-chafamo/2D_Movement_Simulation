@@ -5,6 +5,7 @@ from Class_Bouncer import Bouncer
 from Class_physics import Physics
 from Class_Position import Position
 from Class_Velocity import Velocity
+from Class_Music import Music
 
 class Game():
     def __init__(self, win):
@@ -16,6 +17,7 @@ class Game():
         self.initial_velocity = None
         self.bouncer = Bouncer(self)
         self.bouncer.make_bouncer()
+        self.music = Music
         self.collect_input()
         self.allign_screen()
         self.draw_projectile()
@@ -116,14 +118,18 @@ class Game():
                 mid_x = self.bouncer.list_of_bricks[i][1]
                 mid_y = self.bouncer.list_of_bricks[i][2]
                 if self.inst_x > mid_x - 50 and self.inst_x < mid_x + 50 and self.inst_y > mid_y - 10 and self.inst_y < mid_y + 10:
+                    self.music.play()
                     self.collision("brick", i)
-                    break
+
 
         if self.inst_x > base.getX()-5 and self.inst_x < base.getX() + 105 and self.inst_y > base.getY() - 10 and self.inst_y < base.getY() + 10:
+            self.music.play()
             self.collision("base",0)
         if self.inst_x > left_edge.getX()-5 and self.inst_x < left_edge.getX() + 5 and self.inst_y > left_edge.getY() - 105 and self.inst_y < left_edge.getY()+5:
+            self.music.play()
             self.collision("left_edge",0)
         if self.inst_x > right_edge.getX()-5 and self.inst_x < right_edge.getX() + 5 and self.inst_y > left_edge.getY() - 105 and self.inst_y < left_edge.getY()+5:
+            self.music.play()
             self.collision("right_edge",0)
 
     def collision(self, side, i):
